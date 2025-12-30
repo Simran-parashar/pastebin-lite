@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
 import { nanoid } from "nanoid";
@@ -31,8 +33,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       id,
-      url: `${process.env.NEXT_PUBLIC_BASE_URL}/p/${id}`,
+      url: `/p/${id}`,
     });
+
   } catch (error) {
     console.error("CREATE PASTE ERROR:", error);
     return NextResponse.json(
