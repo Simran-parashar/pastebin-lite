@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
-import { now } from "@/lib/time";
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
-  const { id } = await params;
-  const key = `paste:${id}`;
-
+  const key = `paste:${params.id}`;
   const paste = await redis.get<any>(key);
 
   if (!paste) {
@@ -18,8 +15,9 @@ export async function GET(
     );
   }
 
-  const currentTime = now(req);
+  const currentTime = Date.now();
 
+  // ⏳ Time-based expiry
   if (paste.expires_at && currentTime > paste.expires_at) {
     await redis.del(key);
     return NextResponse.json(
@@ -28,6 +26,7 @@ export async function GET(
     );
   }
 
+  // 👁 View-based expiry
   if (paste.views >= paste.max_views) {
     await redis.del(key);
     return NextResponse.json(
@@ -44,4 +43,3 @@ export async function GET(
     views_left: paste.max_views - paste.views,
   });
 }
-
