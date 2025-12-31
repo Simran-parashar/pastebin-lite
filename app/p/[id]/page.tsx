@@ -5,10 +5,10 @@ type PageProps = {
 export default async function PastePage({ params }: PageProps) {
   const { id } = await params; // ✅ FIX
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/pastes/${id}`,
-    { cache: "no-store" }
-  );
+  const res = await fetch(`${process.env.VERCEL_URL ? "https://" + process.env.VERCEL_URL : ""}/api/pastes/${id}`, {
+  cache: "no-store",
+});
+
 
   if (!res.ok) {
     return <h1 style={{ color: "red" }}>Paste not found or expired</h1>;
