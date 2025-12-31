@@ -5,42 +5,25 @@ import { redis } from "@/lib/redis";
 import { nanoid } from "nanoid";
 
 export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { content, max_views = 1, ttl_seconds } = body;
+  const { content, max_views = 1 } = await req.json();
 
-    if (!content || typeof content !== "string") {
-      return NextResponse.json(
-        { error: "Content is required" },
-        { status: 400 }
-      );
-    }
-
-    const id = nanoid(8);
-    const createdAt = Date.now();
-
-    const paste = {
-      content,
-      max_views: Number(max_views),
-      views: 0,
-      created_at: createdAt,
-      expires_at: ttl_seconds
-        ? createdAt + Number(ttl_seconds) * 1000
-        : null,
-    };
-
-    await redis.set(`paste:${id}`, paste);
-
-    return NextResponse.json({
-      id,
-      url: `/p/${id}`,
-    });
-
-  } catch (error) {
-    console.error("CREATE PASTE ERROR:", error);
+  if (!content) {
     return NextResponse.json(
-      { error: "Failed to create paste" },
-      { status: 500 }
+      { error: "Content is required" },
+      { status: 400 }
     );
   }
+
+  const id = nanoid(8);
+
+  await redis.set(`paste:${id}`, {
+    content,
+    max_views,
+    views: 0,
+  });
+
+  return NextResponse.json({
+    id,
+    url: `/p/${id}`,
+  });
 }

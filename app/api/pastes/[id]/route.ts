@@ -1,24 +1,20 @@
-import { NextResponse } from "next/server";
-import { redis } from "@/lib/redis";
-
 export const runtime = "nodejs";
 
-type Paste = {
-  content: string;
-  max_views: number;
-  views: number;
-  created_at: number;
-  expires_at: number | null;
-};
+import { NextResponse } from "next/server";
+import { redis } from "@/lib/redis";
 
 export async function GET(
   _req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params; // ✅ FIX
+  const { id } = await context.params; // ✅ REQUIRED in Next.js 15
 
   const key = `paste:${id}`;
-  const paste = await redis.get<Paste>(key);
+  const paste = await redis.get<{
+    content: string;
+    max_views: number;
+    views: number;
+  }>(key);
 
   if (!paste) {
     return NextResponse.json(
@@ -27,7 +23,7 @@ export async function GET(
     );
   }
 
-  // View limit check
+  // 👁️ View-based expiry
   if (paste.views >= paste.max_views) {
     await redis.del(key);
     return NextResponse.json(
@@ -36,7 +32,6 @@ export async function GET(
     );
   }
 
-  // Increment views
   paste.views += 1;
   await redis.set(key, paste);
 

@@ -1,35 +1,47 @@
-type PageProps = {
-  params: Promise<{ id: string }>;
+type Paste = {
+  content: string;
+  views_left: number;
 };
 
-export default async function PastePage({ params }: PageProps) {
-  const { id } = await params; // ✅ FIX
+export default async function PastePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  // ✅ IMPORTANT: await params
+  const { id } = await params;
 
-  const res = await fetch(`${process.env.VERCEL_URL ? "https://" + process.env.VERCEL_URL : ""}/api/pastes/${id}`, {
-  cache: "no-store",
-});
-
+  const res = await fetch(
+    `http://localhost:3000/api/pastes/${id}`,
+    { cache: "no-store" }
+  );
 
   if (!res.ok) {
-    return <h1 style={{ color: "red" }}>Paste not found or expired</h1>;
+    return (
+      <div style={{ padding: 40 }}>
+        <h2>Paste not found or expired</h2>
+      </div>
+    );
   }
 
-  const data = await res.json();
+  const data: Paste = await res.json();
 
   return (
-    <main style={{ padding: "2rem", fontFamily: "monospace" }}>
-      <h1>Paste</h1>
+    <div style={{ padding: 40 }}>
+      <h2>Your Paste</h2>
       <pre
         style={{
           background: "#111",
           color: "#0f0",
-          padding: "1rem",
-          borderRadius: "6px",
+          padding: 16,
+          borderRadius: 6,
+          whiteSpace: "pre-wrap",
         }}
       >
         {data.content}
       </pre>
+
       <p>Views left: {data.views_left}</p>
-    </main>
+    </div>
   );
 }

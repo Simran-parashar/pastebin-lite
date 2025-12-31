@@ -1,120 +1,134 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function HomePage() {
   const [content, setContent] = useState("");
-  const [maxViews, setMaxViews] = useState(3);
+  const [link, setLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function createPaste() {
+    if (!content.trim()) {
+      setError("Paste content cannot be empty");
+      return;
+    }
+
     setLoading(true);
+    setError(null);
+    setLink(null);
 
-    const res = await fetch("/api/pastes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content,
-        max_views: maxViews,
-      }),
-    });
+    try {
+      const res = await fetch("/api/pastes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+      });
 
-    const data = await res.json();
-    setLoading(false);
+      if (!res.ok) {
+        throw new Error("Failed to create paste");
+      }
 
-    if (data?.id) {
-      router.push(`/p/${data.id}`);
-    } else {
-      alert("Failed to create paste");
+      const data = await res.json();
+      setLink(data.url);
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
     <main
       style={{
-        minHeight: "100vh",
-        backgroundColor: "#0d0d0d",
-        color: "#eaeaea",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        maxWidth: "700px",
+        margin: "50px auto",
+        padding: "20px",
+        fontFamily: "sans-serif",
       }}
     >
-      <div
+      <h1 style={{ marginBottom: "10px" }}>📋 Pastebin Lite</h1>
+      <p style={{ color: "#666", marginBottom: "20px" }}>
+        Create a paste and share it using a generated link.
+      </p>
+
+      <textarea
+        placeholder="Write your paste content here..."
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        rows={10}
         style={{
           width: "100%",
-          maxWidth: 700,
-          padding: 30,
-          backgroundColor: "#111",
-          borderRadius: 8,
+          padding: "12px",
+          fontSize: "14px",
+          borderRadius: "6px",
+          border: "1px solid #ccc",
+          resize: "vertical",
+        }}
+      />
+
+      <br />
+      <br />
+
+      <button
+        onClick={createPaste}
+        disabled={loading}
+        style={{
+          padding: "10px 16px",
+          fontSize: "14px",
+          borderRadius: "6px",
+          border: "none",
+          cursor: "pointer",
+          backgroundColor: "#000",
+          color: "#fff",
         }}
       >
-        <h1 style={{ marginBottom: 5 }}>Pastebin Lite</h1>
-        <p style={{ color: "#888", marginBottom: 20 }}>
-          Create and share pastes that expire automatically
-        </p>
+        {loading ? "Creating..." : "Create Paste"}
+      </button>
 
-        <form onSubmit={handleSubmit}>
-          <textarea
-            placeholder="Paste your content here..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={10}
-            required
-            style={{
-              width: "100%",
-              padding: 12,
-              borderRadius: 6,
-              backgroundColor: "#000",
-              color: "#0f0",
-              border: "1px solid #333",
-              marginBottom: 15,
-              fontFamily: "monospace",
-            }}
-          />
+      {error && (
+        <p style={{ color: "red", marginTop: "15px" }}>{error}</p>
+      )}
 
-          <label style={{ fontSize: 14, color: "#aaa" }}>
-            Max Views
-          </label>
+      {link && (
+        <div
+          style={{
+            marginTop: "25px",
+            padding: "15px",
+            borderRadius: "6px",
+            background: "#f5f5f5",
+          }}
+        >
+          <p style={{ marginBottom: "8px" }}>✅ Paste created successfully:</p>
 
-          <input
-            type="number"
-            min={1}
-            value={maxViews}
-            onChange={(e) => setMaxViews(Number(e.target.value))}
-            style={{
-              width: "100%",
-              padding: 8,
-              marginTop: 5,
-              marginBottom: 20,
-              backgroundColor: "#000",
-              color: "#fff",
-              border: "1px solid #333",
-              borderRadius: 6,
-            }}
-          />
+          <a
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#0066cc", wordBreak: "break-all" }}
+          >
+            {link}
+          </a>
+
+          <br />
+          <br />
 
           <button
-            type="submit"
-            disabled={loading}
+            onClick={() => navigator.clipboard.writeText(link)}
             style={{
-              width: "100%",
-              padding: 12,
-              backgroundColor: "#22c55e",
-              color: "#000",
-              fontWeight: "bold",
-              borderRadius: 6,
+              padding: "6px 12px",
+              fontSize: "13px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
               cursor: "pointer",
-              border: "none",
             }}
           >
-            {loading ? "Creating Paste..." : "Create Paste"}
+            📎 Copy Link
           </button>
-        </form>
-      </div>
+        </div>
+      )}
     </main>
   );
 }
