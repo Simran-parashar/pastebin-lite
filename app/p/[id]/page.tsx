@@ -3,7 +3,7 @@ type PageProps = {
 };
 
 export default async function PastePage({ params }: PageProps) {
-  const { id } = await params;
+  const { id } = await params; // ✅ FIX
 
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_BASE_URL}/api/pastes/${id}`,
@@ -11,15 +11,24 @@ export default async function PastePage({ params }: PageProps) {
   );
 
   if (!res.ok) {
-    return <div>Paste not found or expired</div>;
+    return <h1 style={{ color: "red" }}>Paste not found or expired</h1>;
   }
 
   const data = await res.json();
 
   return (
-    <main style={{ padding: "2rem" }}>
+    <main style={{ padding: "2rem", fontFamily: "monospace" }}>
       <h1>Paste</h1>
-      <pre>{data.content}</pre>
+      <pre
+        style={{
+          background: "#111",
+          color: "#0f0",
+          padding: "1rem",
+          borderRadius: "6px",
+        }}
+      >
+        {data.content}
+      </pre>
       <p>Views left: {data.views_left}</p>
     </main>
   );

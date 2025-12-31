@@ -1,14 +1,24 @@
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
 
+export const runtime = "nodejs";
+
+type Paste = {
+  content: string;
+  max_views: number;
+  views: number;
+  created_at: number;
+  expires_at: number | null;
+};
+
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
+  _req: Request,
+  context: { params: Promise<{ id: string }> }
 ) {
-  const key = `paste:${params.id}`;
-  const paste = await redis.get<any>(key);
+  const { id } = await context.params; // ✅ FIX
+
+  const key = `paste:${id}`;
+  const paste = await redis.get<Paste>(key);
 
   if (!paste) {
     return NextResponse.json(
@@ -17,18 +27,7 @@ export async function GET(
     );
   }
 
-  const currentTime = Date.now();
-
-  // ⏳ Time-based expiry
-  if (paste.expires_at && currentTime > paste.expires_at) {
-    await redis.del(key);
-    return NextResponse.json(
-      { error: "Paste not found or expired" },
-      { status: 404 }
-    );
-  }
-
-  // 👁 View-based expiry
+  // View limit check
   if (paste.views >= paste.max_views) {
     await redis.del(key);
     return NextResponse.json(
@@ -37,6 +36,7 @@ export async function GET(
     );
   }
 
+  // Increment views
   paste.views += 1;
   await redis.set(key, paste);
 
