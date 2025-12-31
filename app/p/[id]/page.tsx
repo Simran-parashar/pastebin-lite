@@ -1,4 +1,6 @@
-type Paste = {
+import { headers } from "next/headers";
+
+type PasteResponse = {
   content: string;
   views_left: number;
 };
@@ -8,11 +10,22 @@ export default async function PastePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // ✅ IMPORTANT: await params
+  // ✅ Next.js 15: params is async
   const { id } = await params;
 
+  // ✅ Get current host (localhost OR vercel domain)
+  const headersList = await headers();
+  const host = headersList.get("host");
+
+  if (!host) {
+    throw new Error("Host not found");
+  }
+
+  const protocol =
+    process.env.NODE_ENV === "development" ? "http" : "https";
+
   const res = await fetch(
-    `http://localhost:3000/api/pastes/${id}`,
+    `${protocol}://${host}/api/pastes/${id}`,
     { cache: "no-store" }
   );
 
@@ -24,11 +37,12 @@ export default async function PastePage({
     );
   }
 
-  const data: Paste = await res.json();
+  const data: PasteResponse = await res.json();
 
   return (
-    <div style={{ padding: 40 }}>
+    <div style={{ padding: 40, maxWidth: 800, margin: "0 auto" }}>
       <h2>Your Paste</h2>
+
       <pre
         style={{
           background: "#111",
@@ -36,12 +50,15 @@ export default async function PastePage({
           padding: 16,
           borderRadius: 6,
           whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
         }}
       >
         {data.content}
       </pre>
 
-      <p>Views left: {data.views_left}</p>
+      <p style={{ marginTop: 10 }}>
+        Views left: {data.views_left}
+      </p>
     </div>
   );
 }
